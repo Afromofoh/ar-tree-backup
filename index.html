@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Growing Tree AR</title>
+    <!-- Updated versions of libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face.prod.js"></script>
+    <script src="https://aframe.io/releases/1.4.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-face-aframe.prod.js"></script>
+    <style>
+        body {
+            margin: 0;
+        }
+        .container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        .button-container {
+            position: fixed;
+            bottom: 20px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            z-index: 1000;
+            pointer-events: auto;
+        }
+        #waterButton {
+            padding: 15px 30px;
+            font-size: 18px;
+            background-color: #8c1515;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            display: none;
+            cursor: pointer;
+        }
+        #prompt {
+            position: fixed;
+            top: 20px;
+            left: 0;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+            display: none;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        #startButton {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            font-size: 20px;
+            background-color: #8c1515;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+    <button id="startButton">Start AR Experience</button>
+    <div class="container">
+        <div id="prompt">Would you like to water this seed?</div>
+        <div class="button-container">
+            <button id="waterButton">Water the Seed</button>
+        </div>
+        
+        <a-scene 
+            mindar-face
+            embedded
+            color-space="sRGB"
+            renderer="colorManagement: true, physicallyCorrectLights"
+            vr-mode-ui="enabled: false"
+            device-orientation-permission-ui="enabled: false">
+            
+            <a-camera active="false" position="0 0 0"></a-camera>
+            
+            <a-assets>
+                <a-asset-item id="treeModel" src="https://cdn.jsdelivr.net/gh/aframevr/sample-assets@master/assets/models/tree1/tree1.gltf"></a-asset-item>
+            </a-assets>
+
+            <a-entity mindar-face-target="anchorIndex: 0">
+                <!-- Seed (simple sphere to start) -->
+                <a-sphere 
+                    id="seed" 
+                    color="#8B4513" 
+                    radius="0.1" 
+                    position="0 -0.3 0" 
+                    scale="0.1 0.1 0.1">
+                </a-sphere>
+                
+                <!-- Tree (initially hidden) -->
+                <a-entity 
+                    id="tree" 
+                    gltf-model="#treeModel" 
+                    position="0 -0.3 0" 
+                    scale="0 0 0" 
+                    visible="false">
+                    <!-- Stanford logo as a plane above the tree -->
+                    <a-image 
+                        id="logo" 
+                        src="./stanford-logo.png" 
+                        position="0 0.5 0" 
+                        scale="0.3 0.3 0.3">
+                    </a-image>
+                </a-entity>
+            </a-entity>
+        </a-scene>
+    </div>
+
+    <script>
+        const startButton = document.querySelector('#startButton');
+        const seed = document.querySelector('#seed');
+        const tree = document.querySelector('#tree');
+        const prompt = document.querySelector('#prompt');
+        const waterButton = document.querySelector('#waterButton');
+        const sceneEl = document.querySelector('a-scene');
+
+        startButton.addEventListener('click', () => {
+            startButton.style.display = 'none';
+            sceneEl.start();
+        });
+
+        // Show prompt and button after face detection
+        sceneEl.addEventListener('targetFound', () => {
+            console.log('Face detected');
+            prompt.style.display = 'block';
+            waterButton.style.display = 'block';
+        });
+
+        sceneEl.addEventListener('targetLost', () => {
+            console.log('Face lost');
+            prompt.style.display = 'none';
+            waterButton.style.display = 'none';
+        });
+
+        // Handle water button click
+        waterButton.addEventListener('click', () => {
+            // Hide seed
+            seed.setAttribute('visible', 'false');
+            
+            // Show and animate tree growth
+            tree.setAttribute('visible', 'true');
+            let scale = 0;
+            const growInterval = setInterval(() => {
+                scale += 0.05;
+                tree.setAttribute('scale', `${scale} ${scale} ${scale}`);
+                if (scale >= 0.5) {
+                    clearInterval(growInterval);
+                    prompt.style.display = 'none';
+                    waterButton.style.display = 'none';
+                }
+            }, 100);
+        });
+
+        // Add error handling
+        sceneEl.addEventListener('arError', (ev) => {
+            console.error('AR error:', ev.detail);
+        });
+    </script>
+</body>
+</html>
